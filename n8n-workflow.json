@@ -1,0 +1,82 @@
+{
+  "name": "SQL-ETL-AI-Content-Agent-YouTube-LinkedIn",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "1",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [250, 100]
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "topic",
+              "value": "INNER vs LEFT JOIN in SQL"
+            }
+          ]
+        }
+      },
+      "id": "2",
+      "name": "Set Topic",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 1,
+      "position": [450, 100]
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "prompt",
+              "value": "Create a 60-second educational script for a vertical video (9:16 aspect) teaching SQL beginners about: {{$json.topic}}. Include 2-3 code snippets. Provide: 1) Script (60s max), 2) YouTube title (50 chars), 3) YouTube description (200 chars), 4) LinkedIn text (200 chars), 5) 10 hashtags. Reply ONLY in JSON: {\"script\":\"...\", \"title\":\"...\", \"yt_description\":\"...\", \"linkedin_text\":\"...\", \"hashtags\":[\"#SQL\", ...]}"
+            }
+          ]
+        }
+      },
+      "id": "3",
+      "name": "Prepare Prompt",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 1,
+      "position": [650, 100]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://openrouter.ai/api/v1/chat/completions",
+        "authentication": "genericCredentialType",
+        "genericCredentialType": "httpHeaderAuth",
+        "headers": {
+          "Authorization": "Bearer YOUR_OPENROUTER_API_KEY"
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {"name": "model", "value": "gpt-4o-mini"},
+            {"name": "messages", "value": "[{\"role\": \"user\", \"content\": \"{{$json.prompt}}\"}]"},
+            {"name": "temperature", "value": 0.7}
+          ]
+        }
+      },
+      "id": "4",
+      "name": "AI Script Generator",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [850, 100]
+    },
+    {
+      "parameters": {
+        "functionCode": "const response = $json.choices[0].message.content; try { const parsed = JSON.parse(response); return [{...parsed, hashtags_joined: parsed.hashtags.join(' ')}]; } catch(e) { return [{script: 'Error', title: 'Error', yt_description: 'Error', linkedin_text: 'Error', hashtags_joined: '', error: response}]; }"
+      },
+      "id": "5",
+      "name": "Extract JSON",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [1050, 100]
+    }
+  ],
+  "connections": {}
+}
